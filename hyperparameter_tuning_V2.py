@@ -127,12 +127,11 @@ def hyperparameter_study(agent_class_name):
                             )
 
     elif agent_class_name == "DQN_TN":
-        for update_ratio in update_to_data_ratio:
-            for epsilon in epsilons:
+        for update_freq in update_frequencies:
+            for learning_rate in learning_rates:
                 for network_size in network_sizes:
-                    for learning_rate in learning_rates:
-                        for update_freq in update_frequencies:
-
+                    for epsilon in epsilons:
+                        for update_ratio in update_to_data_ratio:
 
                             filename = os.path.join(results_dir, f"DQN_TN_update_freq{update_freq}_data_update_ratio{update_ratio}_lr{learning_rate}_eps{epsilon}_nwsize{network_size}.npz")
                             if os.path.exists(filename):
@@ -163,12 +162,13 @@ def hyperparameter_study(agent_class_name):
                             )
 
     elif agent_class_name == "DQN_ER_TN":
-        for update_ratio in update_to_data_ratio:
-            for epsilon in epsilons:
-                for network_size in network_sizes:
-                    for learning_rate in learning_rates:
-                        for update_freq in update_frequencies:
-                            for buffer_size in buffer_sizes:
+        for buffer_size in buffer_sizes:
+            for update_freq in update_frequencies:
+                for learning_rate in learning_rates:
+                    for network_size in network_sizes:
+                        for epsilon in epsilons:
+                            for update_ratio in update_to_data_ratio:
+                        
                                 filename = os.path.join(results_dir, f"DQN_ER_TN_buffer_size{buffer_size}_update_freq{update_freq}_data_update_ratio{update_ratio}_lr{learning_rate}_eps{epsilon}_nwsize{network_size}.npz")
                                 if os.path.exists(filename):
                                     print(f"Skipping {filename}, already exists.")
