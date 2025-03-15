@@ -66,7 +66,7 @@ def hyperparameter_study(agent_class_name, num_workers=None):
     eval_envs = gym.make_vec("CartPole-v1", n_eval_episodes // 2)
 
     # Default hyperparameters
-    learning_rates = [1e-5, 1e-3, 0.1]
+    learning_rates = [1e-5, 1e-3, 0.1] # [0.1, 1e-3, 1e-5]
     epsilons = [0.05, 0.25, 0.5]
     network_sizes = [32, 64, 128]
     update_to_data_ratio = [0.1, 0.5, 1.0]
