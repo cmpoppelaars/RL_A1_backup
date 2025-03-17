@@ -139,6 +139,7 @@ class DQN_TN:
                 # Use the evaluate method from the agent
                 eval_return, eval_std = self.evaluate()
 
+                # For debug:
                 # print(f"Step {step}/{self.n_steps}, average reward of evaluated episodes: {eval_return} +- {eval_std}")
 
                 # Add returns and timestep to lists
@@ -147,43 +148,56 @@ class DQN_TN:
 
 
     def evaluate(self):
-        returns = []
-        ep_rewards = np.zeros(self.n_eval_envs)
-        states, _ = self.eval_env.reset() 
-       
+        # Keep list to store the returns/rewards on an env, these will be used to returned to the user
+        evaluated_episode_returns = []
+
+        # Create empty rewards for active tracking
+        episode_rewards_thus_far = np.zeros(self.n_eval_envs)
+
         # Track the number of evaluated episodes
-        eps_done = 0
-        while eps_done < self.n_eval_episodes:
+        number_of_done_epsiodes = 0
+
+        # Set the initial states of all environments
+        states, _ = self.eval_env.reset()
+
+        # Start evaluation
+        while number_of_done_epsiodes < self.n_eval_episodes:
+            # Obtain the policy greedy actions, use the main network
             Q_values = self.MainNetwork(states)  # Shape (n_envs, action_size)
             actions =  np.argmax(Q_values, axis=1)
 
+            # Obtain next state, rewards and done flags
             n_states, rewards, terminated, truncated, _ = self.eval_env.step(actions)
             done = terminated | truncated
-            ep_rewards += rewards
-            n_done = sum(done)
+
+            # Update the reward of each episode thus far
+            episode_rewards_thus_far += rewards
+            number_of_dones = sum(done)
 
             # Check if any episode/env was done
-            if n_done > 0: 
+            if number_of_dones > 0: 
                 # Check if we have evaluated enough episodes
-                if len(returns) + n_done > self.n_eval_episodes:
-                    # Add done episode rewards to returns up to only 'n_eval_episodes - len(returns)' such that we only have exactly at most n_eval_episodes of returns
-                    returns.extend(ep_rewards[done][:self.n_eval_episodes - len(returns)])
+                if len(evaluated_episode_returns) + number_of_dones > self.n_eval_episodes:
+                    # Add done episode rewards to returns up to only 'n_eval_episodes - len(evaluated_episode_returns)' such that we only have exactly at most n_eval_episodes of returns
+                    evaluated_episode_returns.extend(episode_rewards_thus_far[done][:self.n_eval_episodes - len(evaluated_episode_returns)])
                     
                     # Now break the loop, we have enough evaluated episodes
                     break
                 # Add all done episodes as we do not exceed the max allowed
                 else:
-                    returns.extend(ep_rewards[done])
+                    evaluated_episode_returns.extend(episode_rewards_thus_far[done])
                     
                 # If we are not done yet, increase the number of dones reached
-                eps_done += n_done
+                number_of_done_epsiodes += number_of_dones
 
                 # Reset the terminated envs
-                ep_rewards[done] = 0
+                episode_rewards_thus_far[done] = 0
             
-            # Move to the nexxt state
+            # Move to the next state
             states = n_states
-        return np.mean(returns), np.std(returns)
+
+        # Return the mean and the std, the latter is for debugging helpful.
+        return np.mean(evaluated_episode_returns), np.std(evaluated_episode_returns)
 
     def save_weights(self, filename="dqn.weights.h5"):
         """Saves the model weights."""

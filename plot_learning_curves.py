@@ -194,6 +194,31 @@ def plot_mean_learning_curves(data_dict, models):
     plt.tight_layout()
     plt.savefig("learning_curves_hyperparameters.pdf", format="pdf", dpi=400)
 
+def plot_best_agents():
+    models = ["NDQN", "DQN_ER", "DQN_TN", "DQN_ER_TN"]
+    
+    data_dict = load_data(
+        models,
+        [0.001],
+        [0.5],
+        [128],
+        [0.1],
+        [5000],
+        [75000]
+    )
+
+    plt.figure()
+    for model in data_dict:
+        time_steps = data_dict[model]['lr'][0.001][0][0]
+        rewards = data_dict[model]['lr'][0.001][0][1]
+        plt.plot(time_steps, rewards, label=model)
+
+    plt.xlabel("Timesteps")
+    plt.ylabel("Average reward")
+    plt.legend()
+    plt.grid()
+    plt.savefig('best_models.pdf', dpi=400)
+
 def plot_hyperparameter_aggregated_curves():
     models = ["NDQN", "DQN_ER", "DQN_TN", "DQN_ER_TN"]
     
@@ -210,3 +235,4 @@ def plot_hyperparameter_aggregated_curves():
 
 if __name__ == '__main__':
     plot_hyperparameter_aggregated_curves()
+    plot_best_agents()

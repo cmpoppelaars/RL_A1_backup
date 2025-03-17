@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-import tensorflow as tf
 import numpy as np
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Input, Dense
@@ -57,7 +54,7 @@ class NDQN:
         model.compile(loss="mse", optimizer=Adam(learning_rate=self.learning_rate), metrics = ['accuracy'])
         return model
 
-    def select_action(self, state: tf.Tensor):
+    def select_action(self, state):
         """Returns an action based on an epsilon-greedy strategy for batch input."""
         if np.random.rand() < self.epsilon:
             return np.random.choice(self.action_size, size=self.n_envs)
@@ -129,44 +126,59 @@ class NDQN:
                 
 
     def evaluate(self):
-        returns = []
-        ep_rewards = np.zeros(self.n_eval_envs)
+        # Keep list to store the returns/rewards on an env, these will be used to returned to the user
+        evaluated_episode_returns = []
+
+        # Create empty rewards for active tracking
+        episode_rewards_thus_far = np.zeros(self.n_eval_envs)
+
+        # Track the number of evaluated episodes
+        number_of_done_epsiodes = 0
+
+        # Set the initial states of all environments
         states, _ = self.eval_env.reset() 
         
-        # Track the number of evaluated episodes
-        eps_done = 0
-        while eps_done < self.n_eval_episodes:
+        # Start evaluation
+        while number_of_done_epsiodes < self.n_eval_episodes:
+            # Obtain the policy greedy actions
             Q_values = self.agent(states)  # Shape (n_envs, action_size)
             actions =  np.argmax(Q_values, axis=1)
 
             # Obtain next state, rewards and done flags
             n_states, rewards, terminated, truncated, _ = self.eval_env.step(actions)
             done = terminated | truncated
-            ep_rewards += rewards
-            n_done = sum(done)
+
+            # Update the reward of each episode thus far
+            episode_rewards_thus_far += rewards
+
+            # Check how many environments were terminated or truncated
+            number_of_dones = sum(done)
 
             # Check if any episode/env was done
-            if n_done > 0: 
+            if number_of_dones > 0: 
                 # Check if we have evaluated enough episodes
-                if len(returns) + n_done > self.n_eval_episodes:
-                    # Add done episode rewards to returns up to only 'n_eval_episodes - len(returns)' such that we only have exactly at most n_eval_episodes of returns
-                    returns.extend(ep_rewards[done][:self.n_eval_episodes - len(returns)])
+                if len(evaluated_episode_returns) + number_of_dones > self.n_eval_episodes:
+                    # Add done episode rewards to returns up to only 'n_eval_episodes - len(evaluated_episode_returns)' such that we only have exactly at most n_eval_episodes of returns
+                    evaluated_episode_returns.extend(episode_rewards_thus_far[done][:self.n_eval_episodes - len(evaluated_episode_returns)])
                     
                     # Now break the loop, we have enough evaluated episodes
                     break
+
                 # Add all done episodes as we do not exceed the max allowed
                 else:
-                    returns.extend(ep_rewards[done])
+                    evaluated_episode_returns.extend(episode_rewards_thus_far[done])
                     
                 # If we are not done yet, increase the number of dones reached
-                eps_done += n_done
+                number_of_done_epsiodes += number_of_dones
 
                 # Reset the terminated envs
-                ep_rewards[done] = 0
+                episode_rewards_thus_far[done] = 0
             
-            # Move to the nexxt state
+            # Move to the next state
             states = n_states
-        return np.mean(returns), np.std(returns)
+        
+        # Return the mean and the std, the latter is for debugging helpful.
+        return np.mean(evaluated_episode_returns), np.std(evaluated_episode_returns)
 
     def save_weights(self, filename="dqn.weights.h5"):
         """Saves the model weights."""
